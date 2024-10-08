@@ -1,29 +1,30 @@
 import React, { useState } from 'react';
-import VideoPreview from '@/actions/videopreview/videoPreview';
-import { useEffect } from 'react';
+// import VideoPreview from '@/actions/videopreview/videoPreview';
+// import { useEffect } from 'react';
 import CardComponent from './CardComponent';
 
 const VideoThumbnail = ({
   imageUrl,
-  contentId,
+  // contentId,
   title,
-  contentDuration,
 }: {
   imageUrl: string;
-  contentId: number;
+  contentId?: number;
   title: string;
-  contentDuration: any;
 }) => {
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [
+    videoUrl,
+    /*setVideoUrl*/
+  ] = useState<string | null>(null);
   const [hover, setHover] = useState(false);
 
-  useEffect(() => {
-    async function fetchVideoUrl() {
-      const url = await VideoPreview({ contentId });
-      setVideoUrl(url);
-    }
-    fetchVideoUrl();
-  }, [contentId]);
+  // useEffect(() => {
+  //   async function fetchVideoUrl() {
+  //     const url = await VideoPreview({ contentId });
+  //     setVideoUrl(url);
+  //   }
+  //   fetchVideoUrl();
+  // }, [contentId]);
   const handleMouseEnter = () => {
     // setHover(true);
   };
@@ -33,7 +34,7 @@ const VideoThumbnail = ({
   };
   return (
     <div
-      className="m relative max-h-[573px] max-w-[1053px]"
+      className="relative max-h-[573px] max-w-[1053px]"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -54,11 +55,7 @@ const VideoThumbnail = ({
               />
             ) : (
               //@ts-ignore
-              <CardComponent
-                type="video"
-                title={title}
-                contentDuration={contentDuration}
-              />
+              <CardComponent type="video" title={title} />
             )}
           </>
         )}

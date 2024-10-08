@@ -17,36 +17,49 @@ const BookmarkList = ({
   }
   return (
     <>
-      <div className="max-w-screen-xl p-4">
-        <div className="grid cursor-pointer auto-rows-fr grid-cols-1 gap-5 md:grid-cols-3 lg:grid-cols-4">
-          {bookmarkData.map((bookmark) => {
-            const {
-              contentId,
-              content: { type, parent, title, hidden, thumbnail, createdAt },
-            } = bookmark;
-            if (type === 'video' && parent && !hidden) {
-              const { id: folderId, courses } = parent;
-              const courseId = courses[0].courseId;
-              const videoUrl = `/courses/${courseId}/${folderId}/${contentId}`;
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {bookmarkData.map((bookmark) => {
+          const {
+            contentId,
+            content: { type, parent, title, hidden, thumbnail, courses },
+          } = bookmark;
+          if ((type === 'video' || type === 'notion') && parent && !hidden) {
+            const { id: folderId, courses } = parent;
+            const courseId = courses[0].courseId;
+            const videoUrl = `/courses/${courseId}/${folderId}/${contentId}`;
 
-              return (
-                <ContentCard
-                  type={type}
-                  key={contentId}
-                  title={title}
-                  image={thumbnail || ''}
-                  onClick={() => {
-                    router.push(videoUrl);
-                  }}
-                  bookmark={bookmark}
-                  contentId={contentId}
-                  createdAt={createdAt}
-                />
-              );
-            }
-          })}
-        </div>
-      </div>
+            return (
+              <ContentCard
+                type={type}
+                key={contentId}
+                title={title}
+                image={thumbnail || ''}
+                onClick={() => {
+                  router.push(videoUrl);
+                }}
+                bookmark={bookmark}
+                contentId={contentId}
+              />
+            );
+          } else if (type === 'folder' && !parent) {
+            const videoUrl = `/courses/${courses[0].courseId}/${courses[0].contentId}`;
+
+            return (
+              <ContentCard
+                type={type}
+                key={contentId}
+                title={title}
+                image={thumbnail || ''}
+                onClick={() => {
+                  router.push(videoUrl);
+                }}
+                bookmark={bookmark}
+                contentId={contentId}
+              />
+            );
+          }
+        })}
+      </section>
     </>
   );
 };

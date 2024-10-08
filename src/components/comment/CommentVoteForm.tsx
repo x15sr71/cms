@@ -1,85 +1,120 @@
 'use client';
-import { voteHandlerAction } from '@/actions/commentVote';
-import { useAction } from '@/hooks/useAction';
-import { VoteType } from '@prisma/client';
-import { ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
-import { usePathname } from 'next/navigation';
-import React from 'react';
-import { toast } from 'sonner';
 
-const CommentVoteForm = ({
-  upVotes,
-  downVotes,
-  commentId,
-  voteType,
-}: {
+import React from 'react';
+import { useAction } from '@/hooks/useAction';
+import { toast } from 'sonner';
+import { ArrowBigDown, ArrowBigUp } from 'lucide-react';
+import { voteHandlerAction } from '@/actions/commentVote';
+import { VoteType } from '@prisma/client';
+import { usePathname } from 'next/navigation';
+
+interface CommentVoteFormProps {
   upVotes: number;
   downVotes: number;
   commentId: number;
   voteType: VoteType | null;
+}
+
+const CommentVoteForm: React.FC<CommentVoteFormProps> = ({
+  upVotes,
+  downVotes,
+  commentId,
+  voteType,
 }) => {
   const currentPath = usePathname();
-
   const { execute, isLoading } = useAction(voteHandlerAction, {
-    onSuccess: () => {
-      toast('Comment Voted');
-    },
+    onSuccess: () => {},
     onError: (error) => {
       toast.error(error);
     },
   });
-  const handleUpvote = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
 
-    execute({
-      commentId,
-      voteType: VoteType.UPVOTE,
-      currentPath,
-    });
-  };
-  const handleDownVote = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleVote = (newVoteType: VoteType) => {
+    let toastMessage = {
+      loading: 'Processing vote...',
+      success: 'Vote updated successfully.',
+      error: 'Error updating vote.',
+    };
 
-    execute({
-      commentId,
-      voteType: VoteType.DOWNVOTE,
-      currentPath,
-    });
+    if (voteType === newVoteType) {
+      toastMessage = {
+        loading: 'Removing vote...',
+        success: `Vote removed successfully.`,
+        error: 'Error removing vote.',
+      };
+    } else if (voteType === null) {
+      toastMessage = {
+        loading:
+          newVoteType === VoteType.UPVOTE ? 'Upvoting...' : 'Downvoting...',
+        success:
+          newVoteType === VoteType.UPVOTE
+            ? 'Comment upvoted.'
+            : 'Comment downvoted.',
+        error: 'Error casting vote.',
+      };
+    } else {
+      toastMessage = {
+        loading: 'Changing vote...',
+        success:
+          newVoteType === VoteType.UPVOTE
+            ? 'Changed to upvote.'
+            : 'Changed to downvote.',
+        error: 'Error changing vote.',
+      };
+    }
+
+    toast.promise(
+      execute({ voteType: newVoteType, commentId, currentPath }),
+      toastMessage,
+    );
   };
+
+  const isUpvoted = voteType === VoteType.UPVOTE;
+  const isDownvoted = voteType === VoteType.DOWNVOTE;
+
   return (
     <div className="flex gap-2">
-      <form onSubmit={handleUpvote}>
+      <form
+        className="m-auto"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleVote(VoteType.UPVOTE);
+        }}
+      >
         <button
-          className={`flex items-center gap-1 text-gray-500 dark:text-gray-400 ${isLoading && 'opacity-80'}`}
+          className={`flex items-center gap-1 rounded-full text-lg transition-all duration-300 ${
+            isUpvoted
+              ? 'text-green-500'
+              : 'text-neutral-500 hover:text-green-500'
+          }`}
           type="submit"
           disabled={isLoading}
         >
-          <ThumbsUpIcon
-            className="h-4 w-4"
-            type="submit"
-            fill={
-              voteType && voteType === VoteType.UPVOTE ? 'currentColor' : 'none'
-            }
+          <ArrowBigUp
+            className={`size-6 ${isUpvoted ? 'text-green-500' : ''}`}
+            fill={isUpvoted ? 'currentColor' : 'none'}
           />
-
           <span>{upVotes}</span>
         </button>
       </form>
-      <form onSubmit={handleDownVote}>
+      <form
+        className="m-auto"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleVote(VoteType.DOWNVOTE);
+        }}
+      >
         <button
-          className={`flex items-center gap-1 text-gray-500 dark:text-gray-400 ${isLoading && 'opacity-80'}`}
+          className={`flex items-center gap-1 rounded-full text-lg transition-all duration-300 ${
+            isDownvoted ? 'text-red-500' : 'text-neutral-500 hover:text-red-500'
+          }`}
           type="submit"
           disabled={isLoading}
         >
-          <ThumbsDownIcon
-            className="h-4 w-4"
-            fill={
-              voteType && voteType === VoteType.DOWNVOTE
-                ? 'currentColor'
-                : 'none'
-            }
+          <ArrowBigDown
+            className={`size-6 ${isDownvoted ? 'text-red-500' : ''}`}
+            fill={isDownvoted ? 'currentColor' : 'none'}
           />
-
           <span>{downVotes}</span>
         </button>
       </form>

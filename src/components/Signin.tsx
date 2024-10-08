@@ -1,13 +1,13 @@
 'use client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
 
 const emailDomains = [
   'gmail.com',
@@ -30,6 +30,7 @@ const Signin = () => {
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const passwordRef = useRef<HTMLInputElement>(null);
   const suggestionRefs = useRef<HTMLLIElement[]>([]);
+  const dropdownRef = useRef<HTMLUListElement>(null);
 
   function togglePasswordVisibility() {
     setIsPasswordVisible((prevState: any) => !prevState);
@@ -48,12 +49,29 @@ const Signin = () => {
       emailReq: false,
     }));
 
+    // Check if the input is a phone number
+    const phoneNumberRegex = /^[0-9]{10}$/;
+    if (phoneNumberRegex.test(value)) {
+      setSuggestedDomains([]); // Clear suggestions for phone numbers
+      return;
+    }
+
     if (!value.includes('@')) {
       setSuggestedDomains(emailDomains);
       return;
     }
 
     const [, currentDomain] = value.split('@');
+
+    // Clear suggestions if domain doesn't match
+    if (
+      !currentDomain ||
+      !emailDomains.some((domain) => domain.startsWith(currentDomain))
+    ) {
+      setSuggestedDomains([]); // Hide suggestions for mismatched domains
+      return;
+    }
+
     // Check for exact matches and filter for partial matches
     const exactMatch = emailDomains.find((domain) => domain === currentDomain);
     if (exactMatch) {
@@ -116,31 +134,79 @@ const Signin = () => {
       router.push('/');
       toast.success('Signed In');
     } else {
-      toast.error('oops something went wrong..!');
+      if (res.status === 401) {
+        toast.error('Invalid Credentials, try again!');
+      } else if (res.status === 400) {
+        toast.error('Missing Credentials!');
+      } else if (res.status === 404) {
+        toast.error('Account not found!');
+      } else if (res.status === 403) {
+        toast.error('Forbidden!');
+      } else {
+        toast.error('oops something went wrong..!');
+      }
       setCheckingPassword(false);
     }
   };
+
+  // Handle clicks outside the dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setSuggestedDomains([]);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
-    <section className="flex h-screen items-center justify-center">
-      <Card className="mx-auto w-[70%] md:w-[70%] lg:w-[30%]">
-        <CardHeader>
-          <CardTitle>Signin to your Account</CardTitle>
-        </CardHeader>
-        <CardContent>
+    <section className="wrapper relative flex min-h-screen items-center justify-center overflow-hidden antialiased">
+      <motion.div
+        initial={{ y: -40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{
+          duration: 0.5,
+          ease: 'easeInOut',
+          type: 'spring',
+          damping: 10,
+        }}
+        className="flex w-full flex-col justify-between gap-12 rounded-2xl bg-primary/5 p-8 md:max-w-[30vw]"
+      >
+        <div className="flex flex-col text-center">
+          <h2 className="text-3xl font-semibold tracking-tighter md:text-4xl">
+            Welcome to{' '}
+            <span className="bg-gradient-to-b from-blue-400 to-blue-700 bg-clip-text pr-1 font-black tracking-tighter text-transparent">
+              100xDevs
+            </span>
+          </h2>
+          <p className="text-lg font-medium tracking-tighter text-primary/75 md:text-xl">
+            Log in to access paid content!
+          </p>
+        </div>
+        <div className="flex flex-col gap-8">
           <div className="grid w-full items-center gap-4">
-            <div className="relative flex flex-col gap-4">
+            <div className="relative flex flex-col gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
-                className="px-2"
+                className="focus:ring-none border-none bg-primary/5 focus:outline-none"
                 name="email"
                 id="email"
                 placeholder="name@email.com"
                 value={email.current}
                 onChange={handleEmailChange}
                 onKeyDown={handleKeyDown}
+                onBlur={() => setSuggestedDomains([])} // Hide suggestions on blur
               />
               {email.current && suggestedDomains.length > 0 && (
                 <ul
+                  ref={dropdownRef}
                   className={`absolute top-20 z-50 max-h-96 w-full min-w-[8rem] overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2`}
                 >
                   {suggestedDomains.map((domain: string, index: number) => (
@@ -148,6 +214,7 @@ const Signin = () => {
                       <li
                         key={domain}
                         value={domain}
+                        //@ts-ignore
                         ref={(listItem) =>
                           (suggestionRefs.current[index] = listItem!)
                         }
@@ -169,11 +236,11 @@ const Signin = () => {
                 <span className="text-red-500">Email is required</span>
               )}
             </div>
-            <div className="relative flex flex-col gap-4">
+            <div className="relative flex flex-col gap-2">
               <Label>Password</Label>
-              <div className="flex rounded-lg border">
+              <div className="flex">
                 <Input
-                  className="border-0 px-2"
+                  className="focus:ring-none border-none bg-primary/5 focus:outline-none"
                   name="password"
                   type={isPasswordVisible ? 'text' : 'password'}
                   id="password"
@@ -194,7 +261,7 @@ const Signin = () => {
                   }}
                 />
                 <button
-                  className="absolute bottom-0 right-0 flex h-10 items-center px-4 text-gray-600"
+                  className="absolute bottom-0 right-0 flex h-10 items-center px-4 text-neutral-500"
                   onClick={togglePasswordVisibility}
                 >
                   {isPasswordVisible ? (
@@ -241,14 +308,16 @@ const Signin = () => {
             </div>
           </div>
           <Button
-            className="my-3 w-full"
+            size={'lg'}
+            variant={'branding'}
             disabled={!email.current || !password.current || checkingPassword}
             onClick={handleSubmit}
           >
             Login
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </motion.div>
+      <div className="absolute -bottom-[16rem] -z-[20] size-[24rem] overflow-hidden rounded-full bg-gradient-to-t from-blue-400 to-blue-700 blur-[16em]" />
     </section>
   );
 };

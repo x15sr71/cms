@@ -1,29 +1,23 @@
 import { TSearchedVideos } from '@/app/api/search/route';
-import { PlayCircleIcon } from 'lucide-react';
+import { Play } from 'lucide-react';
+import Link from 'next/link';
 import React from 'react';
 
-const VideoSearchCard = ({
-  video,
-  onCardClick,
-}: {
-  video: TSearchedVideos;
-  onCardClick: (videoUrl: string) => void;
-}) => {
+const VideoSearchCard = ({ video }: { video: TSearchedVideos }) => {
   const { id: videoId, parentId, parent } = video;
-
-  if (parentId && parent) {
+  if (parentId && parent?.courses.length) {
     const courseId = parent.courses[0].courseId;
     const videoUrl = `/courses/${courseId}/${parentId}/${videoId}`;
     return (
-      <div
-        className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-gray-200 hover:dark:bg-gray-700"
-        onClick={() => onCardClick(videoUrl)}
+      <Link
+        href={videoUrl}
+        className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 hover:bg-blue-600/10 hover:text-blue-600"
       >
-        <div className="min-w-content">
-          <PlayCircleIcon className="h-4 w-4" />
-        </div>
-        <span className="w-4/5">{video.title}</span>
-      </div>
+        <Play className="size-4" />
+        <span className="w-4/5 truncate font-medium capitalize">
+          {video.title}
+        </span>
+      </Link>
     );
   }
 };

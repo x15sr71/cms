@@ -13,6 +13,9 @@ import { handleMarkAsCompleted } from '@/lib/utils';
 import { useSearchParams } from 'next/navigation';
 import './QualitySelectorControllBar';
 import { YoutubeRenderer } from './YoutubeRenderer';
+import { toast } from 'sonner';
+import { createRoot } from 'react-dom/client';
+import { PictureInPicture2 } from 'lucide-react';
 
 // todo correct types
 interface VideoPlayerProps {
@@ -40,6 +43,54 @@ export const VideoPlayer: FunctionComponent<VideoPlayerProps> = ({
   const [player, setPlayer] = useState<any>(null);
   const searchParams = useSearchParams();
   const vidUrl = options.sources[0].src;
+
+  const togglePictureInPicture = async () => {
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (document.pictureInPictureEnabled && playerRef.current) {
+        playerRef.current.requestPictureInPicture();
+      }
+    } catch (error) {
+      // Ignore specific errors that might occur during normal operation
+      if (
+        error instanceof Error &&
+        error.name !== 'NotAllowedError' &&
+        error.name !== 'NotSupportedError'
+      ) {
+        console.error('Failed to toggle Picture-in-Picture mode:', error);
+        toast.error('Failed to toggle Picture-in-Picture mode.');
+      }
+    }
+  };
+
+  const PipButton = () => (
+    <button
+      onClick={togglePictureInPicture}
+      className="flex items-center justify-center text-white focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+      type="button"
+      title="Picture-in-Picture"
+    >
+      <span className="absolute inset-0 rounded bg-black bg-opacity-50 opacity-0 transition-opacity duration-200 group-hover:opacity-100"></span>
+      <PictureInPicture2 className="relative z-10 h-5 w-5" />
+      <span className="sr-only">Picture-in-Picture</span>
+    </button>
+  );
+
+  const createPipButton = (player: Player) => {
+    const pipButtonContainer = (player as any).controlBar.addChild('button', {
+      clickHandler: (event: any) => {
+        event.preventDefault();
+        event.stopPropagation();
+        togglePictureInPicture();
+      },
+    });
+
+    const root = createRoot(pipButtonContainer.el());
+    root.render(<PipButton />);
+
+    return pipButtonContainer;
+  };
 
   useEffect(() => {
     const t = searchParams.get('timestamp');
@@ -195,6 +246,10 @@ export const VideoPlayer: FunctionComponent<VideoPlayerProps> = ({
           player.currentTime(player.currentTime() + 10 * player.playbackRate());
           event.stopPropagation();
           break;
+        case 'KeyP': // 'P' key to toggle picture-in-picture(pip) mode
+          togglePictureInPicture();
+          event.stopPropagation();
+          break;
         case 'KeyC':
           for (let i = 0; i < tracks.length; i++) {
             const track = tracks[i];
@@ -251,28 +306,23 @@ export const VideoPlayer: FunctionComponent<VideoPlayerProps> = ({
           break;
       }
     };
-
     const handleKeyUp = (event: any) => {
       if (event.code === 'KeyT') {
         player.playbackRate(1);
       }
     };
-
     document.addEventListener('keydown', handleKeyPress);
     document.addEventListener('keyup', handleKeyUp);
-
     // Cleanup function
     return () => {
       document.removeEventListener('keydown', handleKeyPress);
     };
   }, [player]);
-
   useEffect(() => {
     if (!player) {
       return;
     }
     let interval = 0;
-
     const handleVideoProgress = () => {
       if (!player) {
         return;
@@ -282,6 +332,7 @@ export const VideoPlayer: FunctionComponent<VideoPlayerProps> = ({
           if (!player) {
             return;
           }
+          //@ts-ignore
           if (player?.paused()) {
             return;
           }
@@ -355,6 +406,10 @@ export const VideoPlayer: FunctionComponent<VideoPlayerProps> = ({
           controlBar
             .el()
             .insertBefore(qualitySelector.el(), fullscreenToggle.el());
+
+          const pipButton = createPipButton(player);
+          controlBar.el().insertBefore(pipButton.el(), fullscreenToggle.el());
+
           setPlayer(player);
           if (options.isComposite) {
             player.spriteThumbnails({
@@ -421,10 +476,7 @@ export const VideoPlayer: FunctionComponent<VideoPlayerProps> = ({
   }
 
   return (
-    <div
-      data-vjs-player
-      className="mx-auto md:max-w-[calc(100vw-3rem)] 2xl:max-w-[calc(100vw-17rem)]"
-    >
+    <div data-vjs-player className="mx-auto">
       <div ref={videoRef} />
     </div>
   );

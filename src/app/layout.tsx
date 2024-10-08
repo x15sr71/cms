@@ -7,8 +7,11 @@ import { Providers } from './providers';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { siteConfig } from '@/config/site-config';
 import { Toaster } from 'sonner';
+import { Navbar } from '@/components/Navbar';
+import NextTopLoader from 'nextjs-toploader';
 
 const satoshi = localFont({
+  display: 'swap',
   src: [
     {
       path: '../../public/fonts/satoshi.ttf',
@@ -21,19 +24,19 @@ export const metadata: Metadata = siteConfig;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html suppressHydrationWarning={true} lang="en">
       <body
+        suppressHydrationWarning={true}
         className={cn(
           'min-h-screen bg-background font-satoshi antialiased',
           satoshi.variable,
         )}
       >
         <GoogleAnalytics />
+        <NextTopLoader />
         <Providers>
-          {/* <NextTopLoader color="#2E78C7" height={2} />
-          {/* this is done as to keep footer in the bottom of the page */}
-          <div className="min-h-[calc(100vh-64px)]">{children}</div>
-          {/* <Footer /> */}
+          <Navbar />
+          {children}
           <Toaster richColors />
         </Providers>
       </body>

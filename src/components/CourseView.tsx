@@ -3,9 +3,10 @@ import { ContentRenderer } from './admin/ContentRenderer';
 import { FolderView } from './FolderView';
 import { NotionRenderer } from './NotionRenderer';
 import { getFolderPercentCompleted } from '@/lib/utils';
-import Comments from './comment/Comments';
 import { QueryParams } from '@/actions/types';
-import { CourseViewToolbar } from './CourseViewToolbar';
+import BreadCrumbComponent from './BreadCrumbComponent';
+import Comments from './comment/Comments';
+// import { Sidebar } from './Sidebar';
 
 export const CourseView = ({
   rest,
@@ -20,15 +21,15 @@ export const CourseView = ({
   rest: string[];
   course: any;
   courseContent:
-    | {
-        folder: true;
-        value: ChildCourseContent[];
-      }
-    | {
-        folder: false;
-        value: ChildCourseContent;
-      }
-    | null;
+  | {
+    folder: true;
+    value: ChildCourseContent[];
+  }
+  | {
+    folder: false;
+    value: ChildCourseContent;
+  }
+  | null;
   nextContent: any;
   searchParams: QueryParams;
   possiblePath: string;
@@ -37,22 +38,19 @@ export const CourseView = ({
     ? 'folder'
     : courseContent?.value.type;
   return (
-    <div className="no-scrollbar flex h-screen flex-col overflow-y-auto pb-20">
-      <div className="mb-2 flex max-h-fit min-h-[2.5rem] items-center px-2">
-        <CourseViewToolbar
-          courseData={{
-            course,
-            contentType,
-            courseContent,
-            fullCourseContent,
-            rest,
-          }}
+    <div className="flex w-full flex-col gap-8 pb-16 pt-8 xl:pt-[9px]">
+      <div className="flex flex-col gap-4 xl:pt-2">
+        <BreadCrumbComponent
+          course={course}
+          contentType={contentType}
+          courseContent={courseContent}
+          fullCourseContent={fullCourseContent}
+          rest={rest}
         />
       </div>
+
       {!courseContent?.folder && courseContent?.value.type === 'notion' ? (
-        <div className="m-4">
-          <NotionRenderer id={courseContent?.value?.id?.toString()} />
-        </div>
+        <NotionRenderer id={courseContent?.value?.id?.toString()} />
       ) : null}
 
       {!courseContent?.folder && contentType === 'video' ? (
@@ -66,10 +64,11 @@ export const CourseView = ({
             description: courseContent?.value?.description || '',
             markAsCompleted:
               courseContent?.value?.videoProgress?.markAsCompleted || false,
-            bookmark: courseContent?.value.bookmark ?? null,
+            bookmark: courseContent?.value.bookmark || null,
           }}
         />
       ) : null}
+
       {!courseContent?.folder &&
         (contentType === 'video' || contentType === 'notion') && (
           <Comments
@@ -83,6 +82,7 @@ export const CourseView = ({
             searchParams={searchParams}
           />
         )}
+
       {courseContent?.folder ? (
         <FolderView
           rest={rest}
@@ -95,8 +95,7 @@ export const CourseView = ({
             percentComplete: getFolderPercentCompleted(x?.children),
             videoFullDuration: x?.videoProgress?.videoFullDuration || 0,
             duration: x?.videoProgress?.duration || 0,
-            bookmark: null,
-            createdAt: x?.createdAt,
+            bookmark: x.bookmark || null,
           }))}
           courseId={parseInt(course.id, 10)}
         />
